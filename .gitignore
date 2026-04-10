@@ -8,5 +8,4 @@ __pycache__/
 
 venv/
 temp.mp4
-# model (optional if large)
-model.pth
+
