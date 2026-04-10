@@ -1,0 +1,6 @@
+streamlit
+numpy
+torch
+opencv-python-headless
+matplotlib
+openai
