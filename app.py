@@ -211,8 +211,8 @@ def analyze(video_path):
 # =========================
 # 🌐 STREAMLIT UI
 # =========================
-
-st.title("🚨 AI Surveillance System")
+st.title("Video Anomaly Detection with 3D CNN + LLM Explanation")
+st.video("assets/intro.mp4")
 st.write("3D CNN + Explainable AI + LLM")
 
 uploaded_file = st.file_uploader("Upload a video", type=["mp4", "avi"])
