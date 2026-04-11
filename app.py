@@ -6,6 +6,13 @@ import os
 from glob import glob
 import matplotlib.pyplot as plt
 import streamlit as st
+from ultralytics import YOLO
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
 class Conv3DAutoencoder(nn.Module):
 
@@ -54,6 +61,11 @@ def load_model():
     return model
 
 model = load_model()
+@st.cache_resource
+def load_yolo():
+    return YOLO("yolov8n.pt")
+
+yolo_model = load_yolo()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -136,15 +148,78 @@ def extract_anomaly_info(mask, frame_idx, frame_shape):
     }
 
 
-# 🔥 Replace this with your Groq / OpenAI client
-def generate_llm_explanation(info):
+def generate_llm_explanation(info, detected_objects):
 
     if info is None:
         return "No anomaly detected."
 
-    return f"A likely anomaly (bicycle-like object) is detected in the {info['region']} of the pedestrian walkway."
+    if len(detected_objects) == 0:
+        return "Anomaly detected but no relevant object identified."
 
+    prompt = f"""
+You are an AI surveillance analyst.
 
+An anomaly is detected in a pedestrian-only walkway.
+
+Details:
+- Region: {info['region']}
+- Size: {info['size_category']}
+- Width: {info['width']}
+- Height: {info['height']}
+- Aspect ratio: {info['aspect_ratio']:.2f}
+- Compactness: {info['compactness']:.2f}
+
+Detected objects:
+{detected_objects}
+
+Context:
+Only pedestrians are normal.
+
+Rules:
+- Bicycle, skateboard, carts are anomalies.
+- Pedestrians are normal.
+
+Task:
+Identify the most likely anomaly and describe it clearly.
+
+Output format:
+"A <object> is detected in the <region> of the pedestrian walkway."
+
+Do NOT explain reasoning.
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
+
+        return response.choices[0].message.content.strip()
+
+    except Exception as e:
+        return f"LLM error: {str(e)}"
+
+ANOMALY_CLASSES = ["bicycle", "skateboard", "car", "truck"]
+
+def detect_objects(frame, mask=None):
+
+    # apply mask if available (🔥 important)
+    if mask is not None:
+        frame = frame.copy()
+        frame[mask == 0] = 0
+
+    results = yolo_model(frame)
+
+    detected = []
+
+    for r in results:
+        for box in r.boxes:
+            cls_id = int(box.cls[0])
+            label = yolo_model.names[cls_id]
+            detected.append(label)
+
+    return detected
 # =========================
 # 🎬 VIDEO → SEQUENCE
 # =========================
@@ -202,8 +277,23 @@ def analyze(video_path):
     orig_frame = seq[0][frame_idx][0].cpu().numpy()
     orig_frame = (orig_frame * 255).astype(np.uint8)
 
-    info = extract_anomaly_info(mask, frame_idx, orig_frame.shape)
-    explanation = generate_llm_explanation(info)
+info = extract_anomaly_info(mask, frame_idx, orig_frame.shape)
+
+detected_objects = []
+
+if info is not None:
+    detected_objects = detect_objects(orig_frame, mask)
+
+valid_objects = [obj for obj in detected_objects if obj in ANOMALY_CLASSES]
+
+if info is None:
+    explanation = "No anomaly detected."
+
+elif len(valid_objects) == 0:
+    explanation = "Anomaly detected but no relevant object identified."
+
+else:
+    explanation = generate_llm_explanation(info, valid_objects)
 
     return orig_frame, mask, explanation
 
