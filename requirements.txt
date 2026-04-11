@@ -1,5 +1,4 @@
-opencv-contrib-python-headless==4.8.1.78
-ultralytics==8.1.0
+ultralytics-opencv-headless
 streamlit
 numpy
 torch
