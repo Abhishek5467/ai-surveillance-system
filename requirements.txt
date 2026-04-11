@@ -3,4 +3,6 @@ numpy
 torch
 opencv-python-headless
 matplotlib
+ultralytics
+gdown
 openai
