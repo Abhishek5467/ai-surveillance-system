@@ -277,23 +277,23 @@ def analyze(video_path):
     orig_frame = seq[0][frame_idx][0].cpu().numpy()
     orig_frame = (orig_frame * 255).astype(np.uint8)
 
-info = extract_anomaly_info(mask, frame_idx, orig_frame.shape)
-
-detected_objects = []
-
-if info is not None:
-    detected_objects = detect_objects(orig_frame, mask)
-
-valid_objects = [obj for obj in detected_objects if obj in ANOMALY_CLASSES]
-
-if info is None:
-    explanation = "No anomaly detected."
-
-elif len(valid_objects) == 0:
-    explanation = "Anomaly detected but no relevant object identified."
-
-else:
-    explanation = generate_llm_explanation(info, valid_objects)
+    info = extract_anomaly_info(mask, frame_idx, orig_frame.shape)
+    
+    detected_objects = []
+    
+    if info is not None:
+        detected_objects = detect_objects(orig_frame, mask)
+    
+    valid_objects = [obj for obj in detected_objects if obj in ANOMALY_CLASSES]
+    
+    if info is None:
+        explanation = "No anomaly detected."
+    
+    elif len(valid_objects) == 0:
+        explanation = "Anomaly detected but no relevant object identified."
+    
+    else:
+        explanation = generate_llm_explanation(info, valid_objects)
 
     return orig_frame, mask, explanation
 
