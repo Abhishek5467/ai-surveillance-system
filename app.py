@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import cv2
 import os
+import cv2
 from glob import glob
 import matplotlib.pyplot as plt
 import streamlit as st

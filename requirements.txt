@@ -1,8 +1,9 @@
+
+opencv-python-headless
 streamlit
 numpy
 torch
-opencv-python-headless
 matplotlib
 ultralytics
-gdown
 openai
+gdown
