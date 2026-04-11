@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import cv2
 import os
+os.system("pip uninstall -y opencv-python opencv-contrib-python")
+os.system("pip install opencv-python-headless==4.8.1.78")
+import cv2
 from glob import glob
 import matplotlib.pyplot as plt
 import streamlit as st
