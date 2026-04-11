@@ -88,23 +88,45 @@ def analyze(video_path):
     while len(frames) < 16:
         ret, frame = cap.read()
         if not ret: break
-        frames.append(cv2.cvtColor(cv2.resize(frame, (224, 224)), cv2.COLOR_BGR2GRAY) / 255.0)
+        # Resize and normalize
+        gray = cv2.cvtColor(cv2.resize(frame, (224, 224)), cv2.COLOR_BGR2GRAY) / 255.0
+        frames.append(gray)
     cap.release()
 
     if len(frames) < 16: return None, None, None
 
+    # Shape: (1, 16, 1, 224, 224) -> (Batch, Time, Channel, H, W)
     seq = torch.tensor(np.array(frames), dtype=torch.float32).unsqueeze(0).unsqueeze(2).to(device)
+    
     with torch.no_grad():
         recon = ae_model(seq)
     
-    mask = get_mask_from_error((seq - recon)**2[0], 8)
-    orig_gray = (seq[0, 8, 0].cpu().numpy() * 255).astype(np.uint8)
-    orig_3ch = cv2.cvtColor(orig_gray, cv2.COLOR_GRAY2BGR) # CRITICAL FIX
+    # --- FIXED SECTION ---
+    # Calculate error first, THEN index the batch
+    error_tensor = (seq - recon)**2
+    mask = get_mask_from_error(error_tensor[0], 8) 
+    # ---------------------
 
-    detected = detect_objects(orig_3ch, mask)
-    valid = [obj for obj in detected if obj in ["bicycle", "skateboard", "car", "truck"]]
+    orig_gray = (seq[0, 8, 0].cpu().numpy() * 255).astype(np.uint8)
+    orig_3ch = cv2.cvtColor(orig_gray, cv2.COLOR_GRAY2BGR)
+
+    info = extract_anomaly_info(mask, orig_gray.shape)
     
-    explanation = "Anomaly detected!" if valid else "No clear anomaly found."
+    valid_objects = []
+    if info:
+        masked_yolo = orig_3ch.copy()
+        masked_yolo[mask == 0] = 0
+        results = yolo_model(masked_yolo, verbose=False)
+        valid_objects = [yolo_model.names[int(b.cls[0])] for r in results for b in r.boxes 
+                         if yolo_model.names[int(b.cls[0])] in ["bicycle", "skateboard", "car", "truck"]]
+
+    if info is None: 
+        explanation = "No anomaly detected."
+    elif not valid_objects: 
+        explanation = "Anomaly detected but object unidentified."
+    else: 
+        explanation = generate_llm_explanation(info, valid_objects)
+
     return orig_gray, mask, explanation
 
 # 5. UI
