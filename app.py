@@ -17,26 +17,32 @@ client = OpenAI(
 
 MEAN = 0.0064360895
 STD = 0.001674196
-THRESHOLD = 3.0
+THRESHOLD = 0.1
 
 # 2. MODEL ARCHITECTURE
 class Conv3DAutoencoder(nn.Module):
-    def __init__(self):
-        super(Conv3DAutoencoder, self).__init__()
+    def __init__(self, base_channels=16):
+        super().__init__()
+
         self.encoder = nn.Sequential(
-            nn.Conv3d(1, 32, kernel_size=3, stride=(1, 2, 2), padding=1),
-            nn.BatchNorm3d(32), nn.ReLU(inplace=True),
-            nn.Conv3d(32, 64, kernel_size=3, stride=(2, 2, 2), padding=1),
-            nn.BatchNorm3d(64), nn.ReLU(inplace=True),
-            nn.Conv3d(64, 128, kernel_size=3, stride=(2, 2, 2), padding=1),
-            nn.BatchNorm3d(128), nn.ReLU(inplace=True),
+            nn.Conv3d(1, base_channels, 3, stride=(1,2,2), padding=1),
+            nn.BatchNorm3d(base_channels), nn.ReLU(),
+
+            nn.Conv3d(base_channels, base_channels*2, 3, stride=(2,2,2), padding=1),
+            nn.BatchNorm3d(base_channels*2), nn.ReLU(),
+
+            nn.Conv3d(base_channels*2, base_channels*4, 3, stride=(2,2,2), padding=1),
+            nn.BatchNorm3d(base_channels*4), nn.ReLU(),
         )
+
         self.decoder = nn.Sequential(
-            nn.ConvTranspose3d(128, 64, kernel_size=3, stride=(2, 2, 2), padding=1, output_padding=1),
-            nn.BatchNorm3d(64), nn.ReLU(inplace=True),
-            nn.ConvTranspose3d(64, 32, kernel_size=3, stride=(2, 2, 2), padding=1, output_padding=1),
-            nn.BatchNorm3d(32), nn.ReLU(inplace=True),
-            nn.ConvTranspose3d(32, 1, kernel_size=3, stride=(1, 2, 2), padding=1, output_padding=(0, 1, 1)),
+            nn.ConvTranspose3d(base_channels*4, base_channels*2, 3, stride=(2,2,2), padding=1, output_padding=1),
+            nn.BatchNorm3d(base_channels*2), nn.ReLU(),
+
+            nn.ConvTranspose3d(base_channels*2, base_channels, 3, stride=(2,2,2), padding=1, output_padding=1),
+            nn.BatchNorm3d(base_channels), nn.ReLU(),
+
+            nn.ConvTranspose3d(base_channels, 1, 3, stride=(1,2,2), padding=1, output_padding=(0,1,1)),
             nn.Sigmoid()
         )
 
@@ -75,7 +81,7 @@ def compute_patch_error(batch, output, patch_size=16):
 
 @st.cache_resource
 def load_resources():
-    ae = Conv3DAutoencoder()
+    ae = Conv3DAutoencoder(base_channels=16)
     if os.path.exists("model_final.pth"):
         state_dict = torch.load("model_final.pth", map_location=device)
 
