@@ -17,7 +17,7 @@ client = OpenAI(
 
 MEAN = 0.0064360895
 STD = 0.001674196
-THRESHOLD = 0.1
+THRESHOLD = 3.0
 
 # 2. MODEL ARCHITECTURE
 class Conv3DAutoencoder(nn.Module):
