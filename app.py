@@ -17,7 +17,7 @@ client = OpenAI(
 
 MEAN = 0.0064360895
 STD = 0.001674196
-THRESHOLD = 0.1
+THRESHOLD = 0.0001
 
 # 2. MODEL ARCHITECTURE
 class Conv3DAutoencoder(nn.Module):
@@ -76,8 +76,8 @@ def compute_patch_error(batch, output, patch_size=16):
 @st.cache_resource
 def load_resources():
     ae = Conv3DAutoencoder()
-    if os.path.exists("model.pth"):
-        ae.load_state_dict(torch.load("model.pth", map_location=device))
+    if os.path.exists("model_final.pth"):
+        ae.load_state_dict(torch.load("model_final.pth", map_location=device))
     ae.to(device).eval()
     yolo = YOLO("yolov8n.pt")
     yolo.to(device)
