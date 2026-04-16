@@ -180,7 +180,7 @@ def analyze(video_path):
     if is_anomaly:
         mask = get_mask_from_error(error_tensor[0], 8)
     else:
-        mask = np.zeros_like(error_tensor[0][0])    
+        mask = np.zeros((224, 224), dtype=np.uint8)    
     orig_gray = (seq[0, 8, 0].cpu().numpy() * 255).astype(np.uint8)
     orig_3ch = cv2.cvtColor(orig_gray, cv2.COLOR_GRAY2BGR)
 
@@ -245,7 +245,11 @@ if uploaded_file:
 
         with col2:
             st.subheader("Anomaly Mask")
-            st.image(mask * 255)
+
+            if mask.ndim == 3:
+                mask = mask[:, :, 0]
+
+            st.image((mask * 255).astype(np.uint8), clamp=True)
 
         with col3:
             st.subheader("Detection")
