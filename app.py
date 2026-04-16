@@ -77,7 +77,9 @@ def compute_patch_error(batch, output, patch_size=16):
 def load_resources():
     ae = Conv3DAutoencoder()
     if os.path.exists("model_final.pth"):
-        ae.load_state_dict(torch.load("model_final.pth", map_location=device))
+        state_dict = torch.load("model_final.pth", map_location=device)
+
+        ae.load_state_dict(state_dict, strict=False)
     ae.to(device).eval()
     yolo = YOLO("yolov8n.pt")
     yolo.to(device)
