@@ -222,8 +222,8 @@ def analyze(video_path):
 # 6. UI LOGIC
 st.title("🛡️ AI Surveillance: 3D CNN + LLM")
 
-if os.path.exists("assets/intro.mp4"):
-    st.video("assets/intro.mp4")
+# if os.path.exists("assets/intro.mp4"):
+#     st.video("assets/intro.mp4")
 
 uploaded_file = st.file_uploader("Upload Security Footage", type=["mp4", "avi"])
 
